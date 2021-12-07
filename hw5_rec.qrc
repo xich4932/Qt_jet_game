@@ -6,5 +6,7 @@
         <file>img/jet.png</file>
         <file>img/ufo1.png</file>
         <file>img/ufo2.png</file>
+        <file>img/missile23.png</file>
+        <file>img/enemymissile.png</file>
     </qresource>
 </RCC>

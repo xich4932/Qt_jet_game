@@ -19,8 +19,9 @@ public:
 };
 
 
-enum type {normal, missile, big_missile};
+enum type {normal, big_missile, missile, enemy_missile};
 const int demage[4] = {20, 50,100};
+//const int Enemy::default_hp [3] = {100, 500,2000};
 
 
 class Bullet : public QObject, public QGraphicsItem {
@@ -35,6 +36,7 @@ public:
     void set_x(int x) { x_ = x;}
     void set_y(int y) { y_ = y;}
     void set_finished(bool b) {finished = b;}
+    int set_dir(int d) { dir = d;}
     //positive direction right up
     void incre_x(int x) { x_ += x;}
     void incre_y(int y) { y_ += y;}
@@ -46,10 +48,11 @@ public:
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *item, QWidget *widget) override;
 
-    static const int speed [3]; //= {19, 30, 30};
-    static const int width_[3]; //= {15, 15, 20};
-    static const int height_[3];// = {15, 57, 37};
-    static const std::string rec_path_[3];
+    static const int speed [4]; //= {19, 30, 30};
+    static const int width_[4]; //= {15, 15, 20};
+    static const int height_[4];// = {15, 57, 37};
+    static const int enemy_bullet_poi[3];
+    static const std::string rec_path_[4];
 
     enum type b_type = type::normal;
 private:
@@ -87,7 +90,7 @@ public:
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *item, QWidget *widget) override;
 
-    void init_bullet();
+    //void init_bullet();
     int left_bullet = 0;
     int right_bullet = 0;
 private:
@@ -120,8 +123,11 @@ public:
     void decre_hp(int );
     bool check_alive();
     void shooting() ;
+    void init_bullet();
+    void restore_hp() {hp = default_hp[E_type];}
     //void set_type(enum Enemy_type ) { b}
-
+    Bullet enemy_bullet[bullet_size];
+    static int bullet_idx;
     QPixmap enemy_pix;
     QRectF boundingRect() const override;
     QPainterPath shape() const override;

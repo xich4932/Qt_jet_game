@@ -19,6 +19,7 @@
 
 const int MainWindow::posi[4] = {0, 77, 154, 231};
 
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -56,18 +57,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     view_sky->setScene(scene_sky);
-   // view_sky->setSceneRect(0,0,view_sky->frameSize().width(),view_sky->frameSize().height());
-    view_sky->setSceneRect(0,0,9999,9999);
+    view_sky->setSceneRect(0,0,view_sky->frameSize().width(),view_sky->frameSize().height());
+    //view_sky->setSceneRect(0,0,9999,9999);
 
    // Bullet *test_bullet_1 = new Bullet(player_->get_x(),player_->get_y() - 200,-1,type::missile);
     //scene_sky->addItem(test_bullet_1);
     scene_sky->addItem(player_);
-
-   // Enemy boss = Enemy(0,0, Enemy_type::boss_ufo);
     scene_sky->addItem(boss);
-     boss->set_finished(1);
-    //scene_sky->addItem(test);
-    //scene_sky->addItem(test);
+
     setFocus();
     this->setFocusPolicy(Qt::StrongFocus);
 
@@ -76,22 +73,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     for(int i = 0; i < bullet_size; i++){
         scene_sky->addItem(&player_->all_bullets[i]);
-        //player_->all_bullets[i].hide();
+        scene_sky->addItem(&boss->enemy_bullet[i]);
     }
 
     for(int e = 0; e < 10; e++){
         scene_sky->addItem(&enemy_[e]);
         enemy_[e].setEnabled(0);
-        //enemy_[e].setVisible(0);
-        //enemy_[e].hide();
     }
 
-
-   // Bullet *test1 = new Bullet(player_->get_x(), player_->get_y(), 1, normal);
-   // scene_sky->addItem(player_->all_bullets);
-   // scene_sky->addItem(&enemy_[0]);
-   // enemy_[0].set_finished(1);
-  //  enemy_[0].set_x_y(50,100);
    connect(timer,&QTimer::timeout,this,&MainWindow::timer_event);
    connect(enemy_showup,&QTimer::timeout,this,&MainWindow::enemy_event);
    update();
@@ -102,26 +91,27 @@ void MainWindow::collide_detection(){
         if(! player_->all_bullets[b].get_finished()) continue;
         for(int e = 0; e < 10; e++){
             if(player_->all_bullets[b].get_finished() && enemy_[e].check_finished() && player_->all_bullets[b].boundingRect().intersects(enemy_[e].boundingRect())){
-                //qDebug() <<"collision";
                 enemy_[e].decre_hp(demage[player_->all_bullets[e].b_type]);
                 player_->all_bullets[b].set_finished(0);
                 if(! enemy_[e].check_alive()){
                     enemy_[e].set_finished(0);
-                    enemy_[e].setEnabled(0);
-                    //enemy_[e].setVisible(0);
                     enemy_[e].restore();
-                    power_->set_height();
+                    power_->set_height(5);
                     reward();
                     update_score_label();
                 }
             }
             if(enemy_[e].check_finished() && enemy_[e].boundingRect().intersects(player_->boundingRect())){
-                qDebug() <<" touch!";
-                health_->set_height();
+                health_->set_height(5);
                 enemy_[e].set_finished(0);
                 enemy_[e].restore();
             }
+            if(boss_showup){
 
+                if(player_->all_bullets[b].get_finished() && player_->all_bullets[b].boundingRect().intersects(boss->boundingRect())){
+                    boss->decre_hp(demage[player_->all_bullets[e].b_type]);
+                }
+            }
         }
     }
 
@@ -129,19 +119,35 @@ void MainWindow::collide_detection(){
 
 void MainWindow::update_score_label(){
     score += 100;
-
     ui->score_number_1->setText(QString::number(score));
 }
 
 void MainWindow::checking_event(){
     double power_percent = power_->get_percent();
-    if(power_percent > 100){
+    if(power_percent >= 100){
         //player_->upgrade_power(missile);
-        ui->text_1->setText("press space");
-    }else if(power_percent > 50){
+        if(upgradable < 2){
+            ui->text_1->setText("press space");
+        }else{
+            ui->text_1->setText("");
+        }
+
+    }else if(power_percent >= 50){
         //player_->upgrade_power(big_missile);
-        ui->text_1->setText("press space");
+        if(upgradable < 1){
+            ui->text_1->setText("press space");
+        }else{
+            ui->text_1->setText("");
+        }
+
+    }                                                       //2000
+    if(!boss_showup && ui->score_number_1->text().toInt() >= 2000){
+        //scene_sky->addItem(boss);
+        boss->set_finished(1);
+        boss_showup = 1;
     }
+    end_game();
+    //if(boss_showup && )
 }
 
 /*
@@ -186,8 +192,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event){
     }else if(event->key() == Qt::Key_Space){
         double pow_per = power_->get_percent();
         if(pow_per >= 100){
+            upgradable ++;
             player_->upgrade_power(missile);
-        }else if(pow_per > 50){
+        }else if(pow_per >= 50){
+            upgradable ++;
             player_->upgrade_power(big_missile);
         }
     }
@@ -200,11 +208,27 @@ void MainWindow::timer_event(){
     scene_sky->update();
     scene_power->update();
     scene_health->update();
+    if(boss_showup)
+        boss->shooting();
     checking_event();
 }
 
+void MainWindow::end_game(){
+    if(health_->get_percent() <= 0){
+        //enemy_showup->stop();
+        on_canvasButton_clicked();
+        ui->text_1->setText("you lose");
+        //timer->stop();
+        qDebug() <<"you die";
+    }else if(boss_showup && ! boss->check_alive()){
+        on_canvasButton_clicked();
+        ui->text_1->setText("you win");
+        qDebug() <<"you win";
+    }
+}
+
 void MainWindow::reward(){
-    power_->set_height();
+    power_->set_height(5);
 }
 
 MainWindow::~MainWindow()
@@ -217,6 +241,7 @@ void MainWindow::enemy_event(){
     enemyTurn();
     enemyStrategy();
     collide_detection();
+    boss_shooting_detection();
 }
 
 void MainWindow::on_canvasButton_clicked()
@@ -244,6 +269,16 @@ void MainWindow::enemyStrategy(){
     }
 }
 
+void MainWindow::boss_shooting_detection(){
+    if(! boss_showup) return;
+    for(int b = 0; b < bullet_size; b++){
+        if(boss->enemy_bullet[b].get_finished() && boss->enemy_bullet[b].boundingRect().intersects(player_->boundingRect())){
+            health_->set_height(7);
+        }
+    }
+
+}
+
 //each turn, 30% chance for a inactive enemy to be active
 void MainWindow::enemyTurn(){
     right_enemy = (right_enemy + 1) % 10;
@@ -251,9 +286,10 @@ void MainWindow::enemyTurn(){
         if(rand() % 9 > 3 ){
             right_enemy = (right_enemy + 1) % 10;
             //when score is over 600, there 2/3 another enemy will show up
-            if(ui->score_number_1->text().toInt() > 600 && rand() % 3 > 1)
+            if(ui->score_number_1->text().toInt() > 600 && rand() % 3 > 1){
                 enemy_[right_enemy].E_type = ufo2;
-
+                enemy_[right_enemy].restore_hp();
+            }
             enemy_[right_enemy].set_finished(1);
             enemy_[right_enemy].setEnabled(1);
             enemy_[right_enemy].set_x_y(posi[rand()% 4] ,0);
